@@ -9,8 +9,10 @@
 !.profile
 !.bash_profile
 !.bin
+!.bin/scripts
 !.bin/*
 # relevant configs
+!.config/
 !.config/bspwm
 !.config/sxhkd
 !.config/dunst
@@ -21,6 +23,7 @@
 !.config/composer
 !.config/lf
 !.config/lftp
+!.config/xkb
 
 node_modules
 node_modules/
