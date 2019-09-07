@@ -1,0 +1,26 @@
+# rice whitelist gitignore
+*
+!.gitignore
+!.ignore
+!.xinitrc
+!.inputrc
+!.bashrc
+!.Xdefaults
+!.profile
+!.bash_profile
+!.bin
+!.bin/*
+# relevant configs
+!.config/bspwm
+!.config/sxhkd
+!.config/dunst
+!.config/mpv
+!.config/polybar
+!.config/qutebrowser
+!.config/zathura
+!.config/composer
+!.config/lf
+!.config/lftp
+
+node_modules
+node_modules/
