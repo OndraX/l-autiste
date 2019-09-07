@@ -1,0 +1,11 @@
+#!/bin/sh
+
+gravpath=/srv/http/grav/
+while getopts "s" opt;
+do
+	case $opt in
+	s) echo "S sent" && (cd "$gravpath" && sudo bin/gpm $@)
+	\? (cd "$gravpath" && bin/gpm $@)
+esac
+done
+

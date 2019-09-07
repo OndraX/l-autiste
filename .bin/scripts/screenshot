@@ -1,0 +1,10 @@
+#!/bin/sh
+mkdir -p "$HOME/Pictures/screenshots"
+LOCATION="$HOME/Pictures/screenshots/$(date +%F--%H-%M-%S).png"
+while getopts "s" opt;
+do
+	case $opt in
+	s) maim -s "$LOCATION" && xclip -t image/png -selection clipboard "$LOCATION" ;;
+	\?) maim "$LOCATION" && xclip -t image/png -selection clipboard "$LOCATION" ;;
+esac
+done

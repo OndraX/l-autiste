@@ -1,0 +1,12 @@
+#!/bin/sh
+CONFDIR=~/.config/read_pdf
+LISTFILE="$CONFDIR/history"
+mkdir -p $CONFDIR
+touch $LISTFILE
+
+if [ $# -eq 0 ]; then
+	# no arguments -- summon dmenu
+	cat $LISTFILE | dmenu -l 20 | xargs $READER & disown
+else
+	echo "$PWD/$1" > $LISTFILE && $READER "$1" & disown
+fi

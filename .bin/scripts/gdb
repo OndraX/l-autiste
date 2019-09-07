@@ -1,0 +1,11 @@
+#!/bin/sh
+
+gravpath=/srv/http/grav/
+while getopts "s" opt;
+do
+	case $opt in
+	s) (cd "$gravpath" && sudo bin/gdb $@)
+	\? (cd "$gravpath" && bin/gdb $@)
+esac
+done
+

@@ -1,0 +1,4 @@
+#!/bin/sh
+latexmk "$@" && cp .build/*.pdf .
+
+

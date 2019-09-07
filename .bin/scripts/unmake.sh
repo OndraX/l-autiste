@@ -1,0 +1,117 @@
+#!/bin/bash
+
+CMD=`basename $0`
+
+show_help()
+{
+    echo "Usage: $CMD <URL> [FORCE={0/1}]"
+}
+
+find_unique_filename()
+{
+    if [ $# -ne 2 ]; then
+        echo "Fail! -- Expecting 2 arguments! ==> $@"
+        return 1 # non-zero as false
+    fi
+    local UNIQUE_FILENAME_VAR=$1
+    local FILENAME=$2
+    if [ -f $FILENAME ]; then
+        COUNTER=0
+        while [ -f $FILENAME ]; do
+            echo "File exists: `basename $FILENAME`"
+            local NEW_FILENAME=`echo $FILENAME | sed "s#\(.*\)-[0-9]\+\.#\1-$COUNTER\.#g"`
+            if [ "$NEW_FILENAME" == "$FILENAME" ]; then
+                NEW_FILENAME=`echo $FILENAME | sed "s#\(.*\)\.#\1-$COUNTER\.#g"`
+            fi
+            FILENAME=$NEW_FILENAME
+            COUNTER=$(( $COUNTER + 1 ))
+        done
+        echo "Next unique filename: `basename $FILENAME`"
+    fi
+    eval "$UNIQUE_FILENAME_VAR=$FILENAME"
+}
+
+cleanup()
+{
+    if [ $# -ne 3 ]; then
+        echo "Fail! -- Expecting 3 argument! ==> $@"
+        return 1 # non-zero as false
+    fi
+    local PLACEHOLDER_TEMP=$1
+    local PARTIAL_TEMP=$2
+    local DONE_VAR=$3
+    local DONE_VALUE=0
+    eval "DONE_VALUE=\$$DONE_VAR"
+    if [ $DONE_VALUE -eq 0 ]; then
+        if [ -f $PLACEHOLDER_TEMP ]; then
+            echo  "Safely removing placeholder temp file ==> $PLACEHOLDER_TEMP"
+            rm -f $PLACEHOLDER_TEMP
+        fi
+    fi
+    if [ -f $PARTIAL_TEMP ]; then
+        echo  "Safely removing partial temp file ==> $PARTIAL_TEMP"
+        rm -f $PARTIAL_TEMP
+    fi
+}
+
+if [ $# -ne 1 -a $# -ne 2 ]; then
+    echo "Fail! -- Expecting 1 or 2 arguments! ==> $@"
+    show_help
+    exit 1
+fi
+
+if [ -z "`which curl`" ]; then
+    echo "Fail! -- Requires \"curl\""
+    echo "Hint: sudo aptitude install curl"
+    exit 1
+fi
+
+URL=$1
+FORCE=$2
+
+if [ -z "$FORCE" ]; then
+    FORCE=0
+fi
+
+echo ""
+echo "Extracting video URL from.. ==> $URL"
+EXTRACTED_URL=`curl -s $URL                   | # download HTML using curl
+        tr -d '\n'                            | # remove carriage returns
+        sed 's#</#\n</#g'                     | # tokenize by HTML tag
+        grep 'flv_url='                       | # locate lines with "flv_url="
+        tr '\n' @                             | # tokenize by line
+        cut -d@ -f1                           | # isolate first instance
+        sed 's/^.*flv_url=\([^&]*\)&.*$/\1/g' | # capture everything between "flv_url=" and "&"
+        sed 's#\%3A#:#g'                      | # replace %3A --> :
+        sed 's#\%3B#;#g'                      | # replace %3B --> ;
+        sed 's#\%2F#/#g'                      | # replace %2F --> /
+        sed 's#\%3F#?#g'                      | # replace %3F --> ?
+        sed 's#\%2C#,#g'                      | # replace %2C --> ,
+        sed 's#\%3D#=#g'                      | # replace %3D --> =
+        sed 's#\%26#\&#g'`                      # replace %26 --> &
+
+echo ""
+echo "Downloading from.. ==> $EXTRACTED_URL"
+LOCAL_FILE="`pwd`/`basename $URL`.flv"
+LOCAL_FILE=`echo $LOCAL_FILE | sed "s/ /_/g"`
+if [ $FORCE -eq 1 ] && [ -f $LOCAL_FILE ]; then
+    echo "Overwriting.. ==> `basename $LOCAL_FILE`"
+else
+    if find_unique_filename LOCAL_FILE $LOCAL_FILE; then
+        : # do nothing
+    else
+        exit 1
+    fi
+    echo "Saving as new.. ==> `basename $LOCAL_FILE`"
+fi
+TEMP=${LOCAL_FILE}.part
+echo -e "#!/bin/bash\n\n$0 $@" > $LOCAL_FILE
+chmod +x $LOCAL_FILE
+trap "cleanup $LOCAL_FILE $TEMP DONE" EXIT
+DONE=0
+curl $EXTRACTED_URL > $TEMP
+mv $TEMP $LOCAL_FILE
+DONE=1
+
+echo ""
+echo "Download complete! ==> $LOCAL_FILE"

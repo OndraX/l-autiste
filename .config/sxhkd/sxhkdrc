@@ -1,0 +1,228 @@
+#tr
+#
+# wm independent hotkeys
+#
+
+# terminal emulator
+{super,hyper} + Return
+	st
+
+{super,hyper} + {alt,shift} + Return
+	bspc node -p {south,east} && st
+
+# terminal emulator in current directory
+super + shift + Return
+	CDTO=$(sed -n 1p /tmp/whichdir) bash -c "st"
+
+# dmenu
+
+{super,hyper} + d
+	dmenu_run
+
+#browse files\
+
+{super,hyper} + @space
+	st -e lf.sh
+
+
+# make sxhkd reload
+super + Escape
+	pkill -USR1 -x sxhkd && notify-send "reloaded" -a "sxhkd"
+
+# super + hyper + Escape
+# 	confirm=$(echo -e "no\nyes" | dmenu -p "are you sure?"); test "yes" = `xargs` && (pkill -x panel && bspc quit)
+
+
+# web browse
+super + w
+	qutebrowser
+
+# connect to wifi
+
+super + shift + W
+	bspc rule -a \* -o state=floating && st -e nmtui
+
+# print screen
+
+Print
+	~/.bin/scripts/screenshot -s
+
+# do the -full screen
+
+super + Print
+	 ~/.bin/scripts/screenshot -f
+
+super + c
+	clipmenu -i -fn Terminus:size=8 -nb '#002b36' -nf '#839496' -sb '#073642' -sf '#93a1a1'
+# d-im monitor brigtness
+#
+
+super + shift + alt + d
+	sleep 1 && xset -display :0.0 dpms force off
+# bspwm hotkeys
+#
+
+#
+# Media #
+#
+
+# Toggle mute
+XF86AudioMute
+    pulseaudio-ctl mute
+
+# Toggle mic mute
+XF86AudioMicMute
+    pulseaudio-ctl mute-input
+
+# Change volume
+XF86Audio{Raise,Lower}Volume
+    pulseaudio-ctl {up,down} 2
+
+XF86MonBrightness{Up,Down}
+	xbacklight {-inc,-dec} 10
+
+# quit/restart bspwm
+
+super + alt + {e,r}
+	echo -e "no\nyes" | dmenu -p "are you sure?" && test $1 = "yes" && bspc {quit,wm -r}
+
+# close and kill 
+
+super + {shift,alt} + q
+	bspc node -{c,k}
+
+# toggle fullscreen (acculy iz m'nocle)
+
+{hyper,super} + f
+	bspc desktop -l next
+
+# I'm using bspwm's monocle layout instead of fullscreen because
+# I currently need the bar available at all times due to a kernel/Xserver/keyboard driver
+# bug which sees the keyboard driver shutting down at random moments
+# hence I have to find a mouse-only remedy
+
+# toggle actual fullscreen (for yt videos)
+
+super + alt + shift + f
+ 	bspc node -t ~fullscreen
+
+# all the various layout options have their respective keys/combinations,
+#   also they toggle between current/previous
+# super + {t,shift + t,s,f}
+# 	bspc node -t ~{tiled,pseudo_tiled,floating,fullscreen}
+#
+# only float and fullscreen,
+#   also they toggle between current/previous
+#   problem: no reset to tiled always available
+# super + {shift,_} + f
+# 	bspc node -t ~{floating,fullscreen}
+#
+# only toggle between fullscreen and default mode for given window
+# super + f
+# 	bspc node -t ~{fullscreen}
+
+# send the newest marked node to the newsest preselected node
+
+super + y 
+	bspc node newest.marked.local -n newest.!automatic.local
+
+# swap current and biggest
+
+super + g
+	bspc node -s biggest
+
+# 
+# state/flags
+#
+
+# set window state
+
+super + {_,shift +}{h,j,k,l}
+	bspc node -{f,s} {west,south,north,east}
+
+# focus the node in the given direction
+
+super + {p,b,comma,period}
+	bspc node -f @{parent,brother,first,second}
+
+# focus the next/previous desktop in the current monitor
+
+super + bracket{left,right}
+	bspc desktop -f {prev,next}.local
+
+# focus the last node/desktop
+
+super + {grave,Tab}
+	bspc {node,desktop} -f last
+
+# focus the older or newer node in the focus directory
+
+super + {o,i}
+	bspc wm -h off; \
+	bspc node {older,newer} -f; \
+	bspc wm -h on
+
+# focus the given desktop
+
+super + {plus,ecaron,scaron,ccaron,rcaron,zcaron,yacute,aacute,iacute,eacute}
+	bspc desktop -f '^{1-9,10}'
+
+# send to given desktop
+
+super + alt + {plus,ecaron,scaron,ccaron,rcaron,zcaron,yacute,aacute,iacute,eacute}
+
+	bspc node -d '^{1,2,3,4,5,6,7,8,9,10}'
+
+# send to given desktop, keep focused
+
+super + {1-9,0}
+	bspc node -d '^{1,2,3,4,5,6,7,8,9,10}' --follow
+
+# hide window
+
+super + semicolon
+	bspc node -g hidden=on
+
+super + shift + semicolon
+	$HOME/.bin/scripts/dmenu_unhide
+
+#
+# preselect
+#
+
+# direction
+
+super + ctrl + {h,j,k,l}
+	bspc node -p {west,south,north,east}
+
+# ratio
+
+super+ctrl={1-9}
+	bspc node -o 0.{1-9}
+
+# cancel preselection
+
+super+ctrl+space
+	bspc node -p cancel
+
+# cancel preselection for focused window
+
+super+ctrl+shift+space
+	bspc query -N -d | xargs -I id -n 1 bspc node id -p cancel
+
+#
+# move/resize TODO!!!
+#
+
+super + alt + {h,j,k,l}
+	bspc node -z {left -20 0, bottom 0 20, top 0 -20,right 20 0}
+
+super + alt + shift {h,j,k,l}
+	bspc node -z {right -20 0, top 0 20, bottom 0 -20,left 20 0}
+
+# move
+
+super + {Left,Down,Up,Right}
+	bspc node -v {-20 0,0 20,0 -20, 20 0}
+
+# builtin keys

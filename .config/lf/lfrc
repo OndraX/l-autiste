@@ -1,0 +1,177 @@
+# defaults
+set shell bash
+set ifs "\n"
+set promptfmt " \[\033[38;5;166m\]%u\[\033[38;5;244m\]@\[\033[38;5;217m\]%h\[\033[38;5;15m\] \[\033[38;5;155;1m\]%w" 
+# navigation
+map gli cd ~/nwo/literature
+map gma cd ~/nwo/Maths
+map gmt cd ~/nwo/Kepler/maturita
+map gsc cd ~/nwo/Kepler
+map gcf cd ~/.config
+map grd cd ~/nwo/run
+map gst cd ~/nwo/Cambridge/prep/step/megapack
+map V $$EDITOR $f
+
+
+# {{{shamelessly stolen from https://github.com/aidam38/adamos/blob/master/.config/lf/lfrc
+# define a custom 'open' command
+cmd open ${{
+    case $(file --mime-type "$f" -L -b) in
+        text/*) $EDITOR $fx;;
+        *) for f in $fx; do $OPENER "$f" > /dev/null 2> /dev/null & done;;
+    esac
+}}
+
+# extract the current file with the right command
+cmd extract ${{
+    set -f
+    case $f in
+        *.tar.bz|*.tar.bz2|*.tbz|*.tbz2) tar xjvf $f;;
+        *.tar.gz|*.tgz) tar xzvf $f;;
+        *.tar.xz|*.txz) tar xJvf $f;;
+        *.zip) unzip $f;;
+        *.rar) unrar x $f;;
+        *.7z) 7z x $f;;
+    esac
+}}
+
+# compress current file or selected files with tar and gunzip
+cmd tar ${{
+    set -f
+    mkdir $1
+    rsync -avh --progress $fx $1
+    # cp -r $fx $1
+    tar czfv $1.tar.gz $1
+    rm -rf $1
+}}
+
+# compress current file or selected files with zip
+cmd zip ${{
+    set -f
+    mkdir $1
+    rsync -avh --progress $fx $1
+    # cp -r $fx $1
+    zip -rv $1.zip $1
+    rm -rf $1
+}}
+
+# make symlink from selection in other window
+cmd symlink &{{
+    load=$(lf -remote 'load')
+    list=$(echo "$load" | sed '1d')
+    while read line; do
+        ln -s $1 $line . && lf -remote "send $id echo softlinked $line to current directory." || lf -remote "send $id echo failed to softlink file $line"
+    done <<< "$list"
+    lf -remote 'send load'
+}}
+
+# make hardlink from selection in other window
+cmd hardlink &{{
+    load=$(lf -remote 'load')
+    list=$(echo "$load" | sed '1d')
+    while read line; do
+        ln $1 $line . && lf -remote "send $id echo hardlinked $line to current directory." || lf -remote "send $id echo failed to hardlink file $line"
+    done <<< "$list"
+    lf -remote 'send load'
+}}
+
+# delete current file or selected files (prompting)
+cmd delete %{{
+    set -f
+    printf "$fx\n"
+    printf "delete?[y/n]"
+    read ans
+    [ $ans = "y" ] && rm -rf $fx
+}}
+
+# rename current file without overwrite
+cmd rename %[[ -e $1 ]] && printf "file exists" || mv $f $1
+#}}}
+#{{{ stolen from lf wiki tips page
+cmd paste &{{
+    load=$(lf -remote 'load')
+    mode=$(echo "$load" | sed -n '1p')
+    list=$(echo "$load" | sed '1d')
+    if [ $mode = 'copy' ]; then
+        rsync -av --ignore-existing --progress $list . \
+        | stdbuf -i0 -o0 -e0 tr '\r' '\n' \
+        | while read line; do
+            lf -remote "send $id echo $line"
+        done
+    elif [ $mode = 'move' ]; then
+        mv -n $list .
+    fi
+    lf -remote 'send load'
+}}
+#}}}
+
+cmd mkseldir %{{
+    read ans
+    mkdir "$ans"
+    lf -remote "send $id select $ans"
+}}
+cmd mkcdir %{{
+    printf "dir name:"
+    read ans
+    mkdir "$ans"
+    lf -remote "send $id cd $ans"
+}}
+map m mkseldir
+map M mkcdir
+map t push :$touch<space>
+map c rename
+map Lh hardlink -r
+map LH hardlink
+map Ls symlink -r
+map LS symlink
+map ů push :
+# clear yanking selection across instances
+cmd paste_screen %{{
+    read ans
+    xclip -o -selection CLIPBOARD >> "$ans"
+}}
+map Ps paste_screen
+# 
+cmd clearload &lf -remote 'send clear'
+cmd yy &echo "$PWD" | xclip -i
+# TODO: add option to run commands *with* clearing load at end
+map <c-x> clearload
+map D delete
+map p paste
+# quit all lf instances:
+map Q &lf -remote 'send quit'; sleep 1; killall lf
+
+# bookmarking {{{
+cmd open_mark ${{
+	mark=$(cat $HOME/scripts/bookmarks/aliases | fzf -n 1 | awk '{$1=""; print $0}' | xargs)
+	if [[ $1 == "-t" ]]; then
+		nohup st -e lf.sh "$mark" &>/dev/null &
+	else
+		if [[ -d "$mark" ]]; then
+			lf -remote "send $id cd "$(echo $mark | sed 's/\s/\\ /g')""
+		elif [[ -f "$mark" ]]; then
+			lf -remote "send $id select "$(echo $mark | sed 's/\s/\\ /g')""
+		fi
+	fi
+}}
+
+cmd edit_mark ${{
+	mark=$(cat $HOME/scripts/bookmarks/aliases | fzf -n 1 | awk '{$1=""; print $0}' | xargs)
+	if [[ -f "$mark" ]]; then
+		lf -remote "send $id select $mark"
+		if [[ $1 == "-t" ]]; then
+			nohup st -e $EDITOR "$mark" &>/dev/null &
+		else
+			$EDITOR "$mark"
+		fi
+	fi
+}}
+
+map o $lf -remote "send $id select '$(fzf)'"
+map O ${{nohup st -e lf.sh "$(fzf)" &>/dev/null &}}
+map b open_mark
+map B open_mark -t
+map e edit_mark
+map E edit_mark -t
+map mm $lf -remote "send $id push :\$addalias<space>\"$f\"<space>"
+# }}}

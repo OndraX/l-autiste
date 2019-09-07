@@ -10,20 +10,32 @@
 !.bash_profile
 !.bin
 !.bin/scripts
+!.bin/scripts/*
 !.bin/*
 # relevant configs
-!.config/
+!.config
 !.config/bspwm
+!.config/bspwm/*
 !.config/sxhkd
+!.config/sxhkd/*
 !.config/dunst
+!.config/dunst/*
 !.config/mpv
+!.config/mpv/*
 !.config/polybar
+!.config/polybar/*
 !.config/qutebrowser
+!.config/qutebrowser/*
 !.config/zathura
+!.config/zathura/*
 !.config/composer
+!.config/composer/*
 !.config/lf
+!.config/lf/*
 !.config/lftp
+!.config/lftp/*
 !.config/xkb
+!.config/xkb/*
 
 node_modules
 node_modules/
